@@ -8,7 +8,7 @@ app = Flask(__name__)
 
 @app.route("/data")
 def data():
-	f = open("data.txt")
+	f = open("p06.tn")
 	t = tn.readFile(f)
 	return json.dumps(getData(t))
 
@@ -31,7 +31,7 @@ def getData(tn):
 	_id = 0
 	for n in tn.nodes:
 		data["nodes"].append({	"id" : n.name,
-								"group" : _id})
+								"group" : tn.getID(n.name)})
 		_id+=1
 
 	for l in tn.links:
@@ -41,5 +41,5 @@ def getData(tn):
 	return data
 
 if __name__ == "__main__":
-	app.run()
+	app.run("0.0.0.0", 5000)
  

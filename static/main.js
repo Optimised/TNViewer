@@ -3,6 +3,8 @@ $(function() {
   createGraph();
 });
 
+var simulation;
+
 function createGraph() {
 	var svg = d3.select("svg"),
     width = +svg.attr("width"),
@@ -10,14 +12,11 @@ function createGraph() {
 
 	var color = d3.scaleOrdinal(d3.schemeCategory20);
 
-	var simulation = d3.forceSimulation()
-	    .force("link", d3.forceLink().id(function(d) { return d.id; }))
-	    .force("charge", d3.forceManyBody())
-	    .force("center", d3.forceCenter(width / 2, height / 2));
-
 	d3.json("/data" , function(graph) {
 		// if (error) throw error;
 		console.log(graph);
+
+		
 
 		var link = svg.append("g")
 			.attr("class", "links")
@@ -25,7 +24,15 @@ function createGraph() {
 			.data(graph.links)
 			.enter().append("line")
 			.attr("stroke-width", function(d) {
-				return Math.sqrt(d.value); 
+				return d.value; 
+			})
+			.attr("stroke", function(d) {
+				if (d.value < 1) {
+					return "orange";
+				} else if (d.value >= 10) {
+					return "black";
+				}
+				return "blue";		
 			});
 
 		var node = svg.append("g")
@@ -33,15 +40,35 @@ function createGraph() {
 			.selectAll("circle")
 			.data(graph.nodes)
 			.enter().append("circle")
-			.attr("r", 5)
+			.attr("r", 10)
 			.attr("fill", function(d) { return color(d.group); })
 			.call(d3.drag()
-			.on("start", dragstarted)
-			.on("drag", dragged)
-			.on("end", dragended));
+				.on("start", dragstarted)
+				.on("drag", dragged)
+				.on("end", dragended));
+		
+		var text = svg.selectAll("text")
+			.data(graph.nodes)
+			.enter()
+			.append("text")
 
-		node.append("title")
-			.text(function(d) { return d.id; });
+		text
+			.attr("x", function(d) { return d.cx; })
+			.attr("y", function(d) { return d.cy; })
+			.text(function(d) { return d.id; })
+			.attr("font-family", "sans-serif")
+			.attr("font-size", "20px")
+			.attr("fill", "red");
+	
+		simulation = d3.forceSimulation()
+			.force("charge", d3.forceManyBody().strength(-2000))
+		    // .force("link", d3.forceLink(graph.links).distance(200))
+		 //    .force("center", d3.forceCenter(width / 2, height / 2))
+		    .force("x", d3.forceX())
+		    .force("y", d3.forceY())
+		    .force("link", d3.forceLink().id(function(d) { return d.id; }))
+	    	// .force("charge", d3.forceManyBody())
+	    	.force("center", d3.forceCenter(width / 2, height / 2))
 
 		simulation
 			.nodes(graph.nodes)
@@ -61,7 +88,13 @@ function createGraph() {
 				.attr("cx", function(d) { return d.x; })
 				.attr("cy", function(d) { return d.y; });
 		}
+
+
 	});
+
+		
+	
+	   
 
 }
 
