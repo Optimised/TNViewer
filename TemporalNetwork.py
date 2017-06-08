@@ -14,7 +14,7 @@ class TemporalNetwork:
 		self.fanOut = {}
 		self.fanIn = {}
 		self._maxID = 0
-		self.nodeIDMap = {}
+		self.nodeCluster = {}
 
 	def getID(self, node_name):
 		return self.nodeIDMap[node_name[:-2]]
@@ -25,7 +25,7 @@ class TemporalNetwork:
 			self.fanOut[node] = []
 			self.fanIn[node] = []
 			
-			actName = node.name[:-2]
+			clusterName = node.name[:-2]
 			if actName not in self.nodeIDMap:
 				self.nodeIDMap[actName] = self._maxID
 				self._maxID += 1
@@ -38,6 +38,10 @@ class TemporalNetwork:
 			self.fanOut[link.n1].append(link)
 			self.fanIn[link.n2].append(link)
 
+	def getNodeClusters():
+		nodeClusers = {}
+
+
 
 def readFile(filePtr):
 	tn = TemporalNetwork()
@@ -47,12 +51,12 @@ def readFile(filePtr):
 		c1 = line.find(FRONT_SEP) + len(FRONT_SEP)
 		c2 = line.find(BACK_SEP)
 		cons = float(line[c1:c2])
-		if cons > 1000:
-			cons = 10
-		elif cons < 1:
-			cons = -cons
-		elif cons < 0:
-			cons = 0.001
+		# if cons > 1000:
+		# 	cons = 10
+		# elif cons < 1:
+		# 	cons = -cons
+		# elif cons < 0:
+		# 	cons = 0.001
 		node1 = Node(n1_name)
 		node2 = Node(n2_name)
 		link = Link(node1, node2, cons)

@@ -2,14 +2,14 @@
 import sys
 import json
 from flask import Flask, render_template
-import TemporalNetwork as tn
+import TemporalNetwork as TN
 
 app = Flask(__name__)
 
 @app.route("/data")
 def data():
 	f = open("p06.tn")
-	t = tn.readFile(f)
+	t = TN.readFile(f)
 	return json.dumps(getData(t))
 
 @app.route('/static/<path:filename>')
@@ -26,7 +26,7 @@ def index():
 
 def getData(tn):
 	data = {"nodes" : [],
-			"links": []}
+			"edges": []}
 
 	_id = 0
 	for n in tn.nodes:
@@ -35,11 +35,22 @@ def getData(tn):
 		_id+=1
 
 	for l in tn.links:
-		data["links"].append({	"source": l.n1.name, 
-								"target": l.n2.name, 
+		data["edges"].append({	"source": tn.nodes.index(l.n1), 
+								"target": tn.nodes.index(l.n2), 
 								"value": l.constraint})
 	return data
 
+def getGraphVizData(tn):
+	print "digraph G {"
+
+	for c in tn.getNodeClusters():
+		
+
+
 if __name__ == "__main__":
-	app.run("0.0.0.0", 5000)
+	# app.run("0.0.0.0", 5000)
+
+	f = open("p06.tn")
+	t = TN.readFile(f)
+	print getGraphVizData(t)
  

@@ -6,96 +6,135 @@ $(function() {
 var simulation;
 
 function createGraph() {
-	var svg = d3.select("svg"),
-    width = +svg.attr("width"),
-    height = +svg.attr("height");
+	var w = 1000;
+    var h = 600;
+	var linkDistance=200;
 
-	var color = d3.scaleOrdinal(d3.schemeCategory20);
+	var svg = d3.select("body").append("svg").attr({"width":w,"height":h});
+	var colors = d3.scale.category20();
 
 	d3.json("/data" , function(graph) {
 		// if (error) throw error;
 		console.log(graph);
 
-		
 
-		var link = svg.append("g")
-			.attr("class", "links")
-			.selectAll("line")
-			.data(graph.links)
-			.enter().append("line")
-			.attr("stroke-width", function(d) {
-				return d.value; 
-			})
-			.attr("stroke", function(d) {
-				if (d.value < 1) {
-					return "orange";
-				} else if (d.value >= 10) {
-					return "black";
-				}
-				return "blue";		
-			});
+		var force = d3.layout.force()
+			.nodes(graph.nodes)
+			.links(graph.edges)
+			.size([w,h])
+			.linkDistance([linkDistance])
+			.charge([-500])
+			.theta(0.1)
+			.gravity(0.05)
+			.start();
 
-		var node = svg.append("g")
-			.attr("class", "nodes")
-			.selectAll("circle")
+		var edges = svg.selectAll("line")
+			.data(graph.edges)
+			.enter()
+			.append("line")
+			.attr("id",function(d,i) {return 'edge'+i})
+			.attr('marker-end','url(#arrowhead)')
+			.style("stroke","#ccc")
+			.style("pointer-events", "none");
+
+		var nodes = svg.selectAll("circle")
 			.data(graph.nodes)
-			.enter().append("circle")
-			.attr("r", 10)
-			.attr("fill", function(d) { return color(d.group); })
-			.call(d3.drag()
-				.on("start", dragstarted)
-				.on("drag", dragged)
-				.on("end", dragended));
-		
-		var text = svg.selectAll("text")
+			.enter()
+			.append("circle")
+			.attr({"r":15})
+			.style("fill",function(d,i){return colors(d.group);})
+			.call(force.drag)
+
+		var nodelabels = svg.selectAll(".nodelabel") 
 			.data(graph.nodes)
 			.enter()
 			.append("text")
+			.attr({"x":function(d){return d.x;},
+				"y":function(d){return d.y;},
+				"class":"nodelabel",
+				"stroke":"black"})
+			.text(function(d){return d.id;});
 
-		text
-			.attr("x", function(d) { return d.cx; })
-			.attr("y", function(d) { return d.cy; })
-			.text(function(d) { return d.id; })
-			.attr("font-family", "sans-serif")
-			.attr("font-size", "20px")
-			.attr("fill", "red");
-	
-		simulation = d3.forceSimulation()
-			.force("charge", d3.forceManyBody().strength(-2000))
-		    // .force("link", d3.forceLink(graph.links).distance(200))
-		 //    .force("center", d3.forceCenter(width / 2, height / 2))
-		    .force("x", d3.forceX())
-		    .force("y", d3.forceY())
-		    .force("link", d3.forceLink().id(function(d) { return d.id; }))
-	    	// .force("charge", d3.forceManyBody())
-	    	.force("center", d3.forceCenter(width / 2, height / 2))
+		var edgepaths = svg.selectAll(".edgepath")
+			.data(graph.edges)
+			.enter()
+			.append('path')
+			.attr({'d': function(d) {return 'M '+d.source.x+' '+d.source.y+' L '+ d.target.x +' '+d.target.y},
+				'class':'edgepath',
+				'fill-opacity':0,
+				'stroke-opacity':0,
+				'fill':'blue',
+				'stroke':'red',
+				'id':function(d,i) {return 'edgepath'+i}})
+			.style("pointer-events", "none");
 
-		simulation
-			.nodes(graph.nodes)
-			.on("tick", ticked);
+		var edgelabels = svg.selectAll(".edgelabel")
+		.data(graph.edges)
+		.enter()
+		.append('text')
+		.style("pointer-events", "none")
+		.attr({'class':'edgelabel',
+			'id':function(d,i){return 'edgelabel'+i},
+			'dx':80,
+			'dy':0,
+			'font-size':10,
+			'fill':'#aaa'});
 
-		simulation.force("link")
-			.links(graph.links);
+		edgelabels.append('textPath')
+			.attr('xlink:href',function(d,i) {return '#edgepath'+i})
+			.style("pointer-events", "none")
+			.text(function(d,i){return d.value});
 
-		function ticked() {
-			link
-				.attr("x1", function(d) { return d.source.x; })
-				.attr("y1", function(d) { return d.source.y; })
-				.attr("x2", function(d) { return d.target.x; })
-				.attr("y2", function(d) { return d.target.y; });
+		svg.append('defs').append('marker')
+			.attr({'id':'arrowhead',
+				'viewBox':'-0 -5 10 10',
+				'refX':25,
+				'refY':0,
+				//'markerUnits':'strokeWidth',
+				'orient':'auto',
+				'markerWidth':10,
+				'markerHeight':10,
+				'xoverflow':'visible'})
+			.append('svg:path')
+				.attr('d', 'M 0,-5 L 10 ,0 L 0,5')
+				.attr('fill', '#ccc')
+				.attr('stroke','#ccc');
 
-			node
-				.attr("cx", function(d) { return d.x; })
-				.attr("cy", function(d) { return d.y; });
-		}
+		force.on("tick", function(){
 
+			edges.attr({
+				"x1": function(d){return d.source.x;},
+				"y1": function(d){return d.source.y;},
+				"x2": function(d){return d.target.x;},
+				"y2": function(d){return d.target.y;}
+			});
 
+			nodes.attr({"cx":function(d){return d.x;},
+				"cy":function(d){return d.y;}
+			});
+
+			nodelabels.attr("x", function(d) { return d.x; }) 
+				.attr("y", function(d) { return d.y; });
+
+			edgepaths.attr('d', function(d) { 
+				var path='M '+d.source.x+' '+d.source.y+' L '+ d.target.x +' '+d.target.y;
+				//console.log(d)
+				return path
+			});       
+
+			edgelabels.attr('transform',function(d,i){
+				if (d.target.x<d.source.x){
+					bbox = this.getBBox();
+					rx = bbox.x+bbox.width/2;
+					ry = bbox.y+bbox.height/2;
+					return 'rotate(180 '+rx+' '+ry+')';
+					}
+				else {
+					return 'rotate(0)';
+				}
+			});
+		});
 	});
-
-		
-	
-	   
-
 }
 
 function dragstarted(d) {
